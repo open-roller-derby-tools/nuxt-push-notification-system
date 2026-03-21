@@ -5,7 +5,7 @@ export function usePushNotifications() {
   const notificationsEnabled = useState('notifications_enabled', () => false)
   // Get public VAPID key
   const vapidPublicKey = config.public.vapidPublicKey as string
-  const { userId } = useUser()
+  const { ensureUserExists } = useUser()
 
   const isSupported = computed(() => {
     if (typeof window === 'undefined') return false
@@ -37,7 +37,7 @@ export function usePushNotifications() {
     })
 
     const json = subscription.toJSON()
-    // const userId = await ensureUserExists()
+    const userId = await ensureUserExists()
     // Save it to DB
     await $fetch('/api/push/register', {
       method: 'POST',
@@ -61,7 +61,7 @@ export function usePushNotifications() {
     if (!subscription) return
 
     const json = subscription.toJSON()
-    // const userId = await ensureUserExists()
+    const userId = await ensureUserExists()
 
     await $fetch('/api/push/unregister', {
       method: 'POST',
