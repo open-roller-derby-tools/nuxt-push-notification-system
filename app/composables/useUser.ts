@@ -1,5 +1,5 @@
 export function useUser() {
-/*   const deviceId = useState<string>('device_id', () => {
+  const deviceId = useState<string>('device_id', () => {
     if (import.meta.client) {
       return localStorage.getItem('device_id') || ''
     }
@@ -27,10 +27,5 @@ export function useUser() {
     return res.user_id
   }
 
-  return { deviceId, userId, ensureUserExists } */
-
-  const userId = useState<string | null>('user_id', () => null)
-  const isReady = computed(() => userId.value !== null)
-
-  return { userId, isReady }
+  return { deviceId, userId, ensureUserExists }
 }

@@ -10,7 +10,7 @@ const notificationsEnabled = useState('notifications_enabled')
 
 // Load channels from backend
 onMounted(async () => {
-// await ensureUserExists()
+  await ensureUserExists()
   const [allChannels, userSubs] = await Promise.all([
     $fetch('/api/channels/list'),
     $fetch(`/api/subscriptions/${userId.value}`)
