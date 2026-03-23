@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
 
   // Find channel
   const channel = await db.query(
-    `SELECT id FROM channels WHERE slug = $1`,
+    `SELECT id, slug, name FROM channels WHERE slug = $1`,
     [channel_slug],
   )
 
@@ -33,23 +33,24 @@ export default defineEventHandler(async (event) => {
     [channel.rows[0].id, title, body, data ?? {}, scheduled_at ?? null],
   )
 
-  const notificationId = result.rows[0].id
   const notification = result.rows[0]
 
-  // Publish to BullMQ
-  await notificationQueue.add(
+  // Publish to BullMQ (if not scheduled)
+  if (!scheduled_at) {
+      await notificationQueue.add(
     'send-notification',
-    { notification_id: notification.id,
-      title: notification.title,
-      body: notification.body,
-      channel: notification.channel_name,
-      channel_slug: notification.channel_slug,
-      scheduled_at: notification.scheduled_at,
-      created_at: notification.created_at },
-    scheduled_at // If scheduled_at planned notification, else instant notification
-      ? { delay: new Date(scheduled_at).getTime() - Date.now() }
-      : {}
-  )
+      { 
+        notification_id: notification.id,
+        title: notification.title,
+        body: notification.body,
+        channel_id: channel.rows[0].id,
+        channel_name: channel.rows[0].name,
+        channel_slug: channel.rows[0].slug,
+        scheduled_at: notification.scheduled_at,
+        created_at: notification.created_at 
+      }
+    )
+  }
 
-  return { id: notificationId }
+  return { id: notification.id }
 })

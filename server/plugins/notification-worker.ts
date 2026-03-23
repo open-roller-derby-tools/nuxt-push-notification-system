@@ -20,20 +20,21 @@ export default defineNitroPlugin(() => {
       const db = getDb()
       await db.connect()
 
-      // 1) Get notification
+      // Get notification
       const notifRes = await db.query(
         `SELECT * FROM notifications WHERE id = $1`,
         [notification_id],
       )
 
       if (notifRes.rowCount === 0) {
-        console.warn('[BullMQ] Notification not found:', notification_id)
+        await job.log(`[BullMQ] Notification not found:' ${notification_id}`)
+      
         return
       }
 
       const notif = notifRes.rows[0]
 
-      // 2) Get channel subscribers
+      // Get channel subscribers
       const usersRes = await db.query(
         `SELECT user_id FROM subscriptions WHERE channel_id = $1`,
         [notif.channel_id],
@@ -42,7 +43,7 @@ export default defineNitroPlugin(() => {
       let globalSuccess = false
       let noUserSubscription = true
 
-      // 3) For each device (user)
+      // For each device (user)
       for (const u of usersRes.rows) {
         const subsRes = await db.query(
           `SELECT * FROM push_subscriptions WHERE user_id = $1`,
@@ -51,12 +52,11 @@ export default defineNitroPlugin(() => {
 
         // If no subcription from user for this channel, skip notification push
         if (subsRes.rowCount === 0) {
-          console.log(`[BullMQ] No subscriptions for notification ${notification_id}, skipping`)
           continue
         }
         noUserSubscription = false
 
-        // 4) For each user subscription
+        // For each user subscription
         for (const s of subsRes.rows) {
           try {
             await webpush.sendNotification(
@@ -101,11 +101,11 @@ export default defineNitroPlugin(() => {
       }
 
       if (noUserSubscription) {
-        console.log(`[BullMQ] No subscriptions at all for notification ${notification_id}, skipping`)
+        await job.log(`[BullMQ] No subscriptions at all for notification ${notification_id}, skipping`)
         return
       }
 
-      // 5) If one delivery is succeded, set notification as sent
+      // If one delivery is succeded, set notification as sent
       if (globalSuccess) {
         await db.query(
           `UPDATE notifications SET sent_at = NOW() WHERE id = $1`,
@@ -116,7 +116,7 @@ export default defineNitroPlugin(() => {
         throw new Error('All notification deliveries failed')
       }
 
-      console.log('[BullMQ] Notification processed:', notification_id)
+      await job.log(`Notification processed: ${notification_id}`)
     },
     {
       connection: {
