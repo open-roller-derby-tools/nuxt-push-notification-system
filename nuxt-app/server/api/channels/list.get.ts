@@ -6,7 +6,7 @@ export default defineEventHandler(async () => {
   await db.connect()
 
   const result = await db.query(`
-    SELECT id, slug, name, created_at
+    SELECT id, slug, name, track, team_id_1, team_id_2, created_at
     FROM channels
     ORDER BY created_at DESC
   `)
