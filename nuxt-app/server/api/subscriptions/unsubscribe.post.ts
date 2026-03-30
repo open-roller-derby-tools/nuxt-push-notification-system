@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const db = getDb()
   await db.connect()
 
-  // Récupérer le channel
+  // Get the channel
   const channel = await db.query(
     `SELECT id FROM channels WHERE slug = $1`,
     [channel_slug],
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: "Channel not found" })
   }
 
-  // Supprimer l'abonnement
+  // Delete subcription
   const result = await db.query(
     `
     DELETE FROM subscriptions

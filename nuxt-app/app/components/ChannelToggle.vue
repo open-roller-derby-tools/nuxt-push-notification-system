@@ -10,7 +10,6 @@ const props = defineProps({
 const emit = defineEmits(['toggle'])
 
 function onToggle() {
-  console.log(props.disabled)
   emit('toggle', props.channel)
 }
 </script>

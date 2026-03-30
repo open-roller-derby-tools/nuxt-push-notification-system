@@ -4,8 +4,7 @@ definePageMeta({
 })
 
 const channels = ref([])
-// const { ensureUserExists, userId } = useUser()
-const { userId } = useUser()
+const { ensureUserExists, userId } = useUser()
 const notificationsEnabled = useState('notifications_enabled')
 
 // Load channels from backend
