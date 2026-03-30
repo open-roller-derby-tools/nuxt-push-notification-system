@@ -4,6 +4,19 @@ definePageMeta({
 })
 const { toUtc } = useUtcDate()
 
+const notificationTypes = [
+  // Channel starts with "game_":
+  { label: 'start_soon', index: 1 }, // scheduled, link to the game
+  { label: 'start', index: 2 }, // scheduled, link to the game
+  { label: 'intermission', index: 3 }, // manual, link to the game --> score
+  { label: 'end_of_game', index: 4 }, // manual, link to the game --> score
+  { label: 'late', index: 5 }, // manual, link to the game - number of minutes late --> propagate to all channel scheduled notifications
+  // Channel is on_site_notices
+  { label: 'on_site_info', index: 6 }, // manual, link to the app - free text
+  // Channel is global_notices
+  { label: 'global_info', index: 7 } // manual, link to the app - free text
+]
+
 const title = ref('')
 const message = ref('')
 const channel = ref(null)
