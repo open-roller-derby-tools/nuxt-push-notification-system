@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const result = await db.query(
     `
     INSERT INTO channels (slug, name, track, team_id_1, team_id_2)
-    VALUES ($1, $2)
+    VALUES ($1, $2, $3, $4, $5)
     ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name
     RETURNING id
     `,

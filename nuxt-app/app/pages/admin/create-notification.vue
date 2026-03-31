@@ -4,24 +4,48 @@ definePageMeta({
 })
 const { toUtc } = useUtcDate()
 
-const notificationTypes = [
+const notificationTypes = {
   // Channel starts with "game_":
-  { label: 'start_soon', index: 1 }, // scheduled, link to the game
-  { label: 'start', index: 2 }, // scheduled, link to the game
-  { label: 'intermission', index: 3 }, // manual, link to the game --> score
-  { label: 'end_of_game', index: 4 }, // manual, link to the game --> score
-  { label: 'late', index: 5 }, // manual, link to the game - number of minutes late --> propagate to all channel scheduled notifications
+  game: [
+    { label: 'Start soon', index: 1 }, // scheduled, link to the game
+    { label: 'Started', index: 2 }, // scheduled, link to the game
+    { label: 'intermission', index: 3 }, // manual, link to the game --> score
+    { label: 'end of game', index: 4 }, // manual, link to the game --> score
+    { label: 'late', index: 5 }, // manual, link to the game - number of minutes late --> propagate to all channel scheduled notifications
+  ], 
   // Channel is on_site_notices
-  { label: 'on_site_info', index: 6 }, // manual, link to the app - free text
+  on_site_notices: [
+    { label: 'on_site_info', index: 6 }, // manual, link to the app - free text
+  ],
   // Channel is global_notices
-  { label: 'global_info', index: 7 } // manual, link to the app - free text
-]
+  global_notices: [
+    { label: 'global_info', index: 7 } // manual, link to the app - free text
+  ]
+}
 
+const channelType = computed(() => {
+  if (!channel.value) return null
+
+  if (channel.value.startsWith('game_')) return 'game'
+  if (channel.value === 'on_site_notices') return 'on_site_notices'
+  if (channel.value === 'global_notices') return 'global_notices'
+
+  return null
+})
+
+const availableNotificationTypes = computed(() => {
+  return notificationTypes[channelType.value] ?? []
+})
+
+const notificationType = ref(null)
 const title = ref('')
 const message = ref('')
 const channel = ref(null)
 const mode = ref('live') // 'live' or 'scheduled'
 const scheduledAt = ref(null)
+
+const score1 = ref(null)
+const score2 = ref(null)
 
 const channels = ref([])
 
@@ -55,10 +79,28 @@ async function submit() {
     <h1 class="text-3xl font-bold">Create Notification</h1>
 
     <form @submit.prevent="submit" class="space-y-6 max-w-xl">
+      <!-- Notification type -->
+      <div v-if="availableNotificationTypes.length > 0">
+        <label class="block mb-2 text-gray-300">Notification type</label>
+        <select v-model="notificationType" class="w-full p-3 bg-gray-900 rounded border border-gray-700">
+          <option v-for="t in availableNotificationTypes" :key="t.index" :value="t.label">
+            {{ t.label }}
+          </option>
+        </select>
+      </div>
       <!-- Title -->
       <div>
         <label class="block mb-2 text-gray-300">Title</label>
         <input v-model="title" class="w-full p-3 bg-gray-900 rounded border border-gray-700" />
+      </div>
+      <!-- score -->
+      <div v-if="notificationType === 'intermission' || notificationType === 'end of game'">
+        <label class="block mb-2 text-gray-300">Score team 1</label>
+        <input v-model="score1" class="w-full p-3 bg-gray-900 rounded border border-gray-700" />
+      </div>
+      <div v-if="notificationType === 'intermission' || notificationType === 'end of game'">
+        <label class="block mb-2 text-gray-300">Score team 2</label>
+        <input v-model="score2" class="w-full p-3 bg-gray-900 rounded border border-gray-700" />
       </div>
       <!-- Content -->
       <div>
