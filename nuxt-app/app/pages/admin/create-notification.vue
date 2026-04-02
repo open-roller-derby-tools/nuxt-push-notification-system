@@ -44,7 +44,6 @@ const isFreeText = computed(() => {
 })
 
 const notificationType = ref(null)
-const title = ref('')
 const message = ref('')
 const channel = ref(null)
 const mode = ref('live') // 'live' or 'scheduled'
@@ -52,6 +51,8 @@ const scheduledAt = ref(null)
 
 const score1 = ref(null)
 const score2 = ref(null)
+
+const gameDelay = ref(null)
 
 const channels = ref([])
 
@@ -79,6 +80,7 @@ const autoMessage = computed(() => {
     team2: channel.value.team_id_2,
     score1: score1.value,
     score2: score2.value,
+    minutes: gameDelay.value,
     message: message.value // for free text
   }
 
@@ -90,6 +92,12 @@ function applyTemplate(template, vars) {
     const k = key.trim()
     return vars[k] ?? ''
   })
+}
+
+function handleSubmit(e) {
+  e.preventDefault()
+  if (!e.target.checkValidity()) return
+  submit()
 }
 
 async function submit() {
@@ -104,7 +112,10 @@ async function submit() {
   })
 
   message.value = ''
+  score1.value = null
+  score2.value = null
   scheduledAt.value = null
+  gameDelay.value = null
 }
 </script>
 
@@ -112,11 +123,11 @@ async function submit() {
   <div class="space-y-8">
     <h1 class="text-3xl font-bold">Create Notification</h1>
 
-    <form @submit.prevent="submit" class="space-y-6 max-w-xl">
+    <form @submit="handleSubmit" class="space-y-6 max-w-xl">
       <!-- Channel -->
       <div>
         <label class="block mb-2 text-gray-300">Channel</label>
-        <select v-model="channel" class="w-full p-3 bg-gray-900 rounded border border-gray-700">
+        <select v-model="channel" required class="w-full p-3 bg-gray-900 rounded border border-gray-700">
           <option v-for="c in channels" :key="c.id" :value="c">
             {{ c.name }}
           </option>
@@ -125,7 +136,7 @@ async function submit() {
       <!-- Notification type -->
       <div v-if="availableNotificationTypes.length > 0">
         <label class="block mb-2 text-gray-300">Notification type</label>
-        <select v-model="notificationType" class="w-full p-3 bg-gray-900 rounded border border-gray-700">
+        <select v-model="notificationType" required class="w-full p-3 bg-gray-900 rounded border border-gray-700">
           <option v-for="t in availableNotificationTypes" :key="t.index" :value="t">
             {{ t.label }}
           </option>
@@ -154,6 +165,9 @@ async function submit() {
             Score team id {{ channel.team_id_1 }}
           </label>
           <input
+            required
+            type="number"
+            name="score team 1"
             v-model="score1"
             class="w-full p-3 bg-gray-900 rounded border border-gray-700"
           />
@@ -165,10 +179,26 @@ async function submit() {
           </label>
           <input
             v-model="score2"
+            type="number"
+            required
+            name="score team 2"
             class="w-full p-3 bg-gray-900 rounded border border-gray-700"
           />
         </div>
       </div>
+      <!-- Game delay in minutes -->
+      <div v-if="channel &&
+          notificationType && notificationType.label === 'late'" class="mt-4">
+      <label class="block mb-2 text-gray-300">Minutes de retard</label>
+        <input
+          v-model="gameDelay"
+          type="number"
+          name="minutes"
+          min="1"
+          required
+          class="w-full p-3 bg-gray-900 rounded border border-gray-700"
+        />
+    </div>
       <!-- Content -->
       <div>
         <label class="block mb-2 text-gray-300">Message</label>
@@ -176,6 +206,8 @@ async function submit() {
         <textarea
           v-if="isFreeText"
           v-model="message"
+          name="free text"
+          required
           rows="4"
           class="w-full p-3 bg-gray-900 rounded border border-gray-700"
         />
