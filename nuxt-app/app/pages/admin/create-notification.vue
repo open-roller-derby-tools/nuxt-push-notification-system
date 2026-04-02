@@ -7,8 +7,8 @@ const { toUtc } = useUtcDate()
 const notificationTypes = {
   // Channel starts with "game_":
   game: [
-    { label: 'Start soon', index: 1, title: "Game is starting soon", template: 'The game {{team_id_1}} vs. {{team_id_2}} will start soon on track {{track}}', isScheduled: true }, // scheduled, link to the game
-    { label: 'Started', index: 2, title: "Game has started", template: 'The game  {{team_id_1}} vs. {{team_id_2}} has started on track {{track}}', isScheduled: true }, // scheduled, link to the game
+    { label: 'Start soon', index: 1, title: "Game is starting soon", template: 'The game {{team1}} vs. {{team2}} will start soon on track {{track}}', isScheduled: true }, // scheduled, link to the game
+    { label: 'Started', index: 2, title: "Game has started", template: 'The game  {{team1}} vs. {{team2}} has started on track {{track}}', isScheduled: true }, // scheduled, link to the game
     { label: 'intermission', index: 3, title: "Intermission", template: '{{team1}} {{score1}} - {{score2}} {{team2}}', isScheduled: false }, // manual, link to the game --> score
     { label: 'end of game', index: 4, title: "End of game", template: 'Final score: {{team1}} {{score1}} - {{score2}} {{team2}}', isScheduled: false }, // manual, link to the game --> score
     { label: 'late', index: 5, title: "Late", template: 'The game is running {{minutes}} minutes late', isScheduled: false } // manual, link to the game - number of minutes late --> propagate to all channel scheduled notifications
@@ -37,6 +37,12 @@ const availableNotificationTypes = computed(() => {
   return notificationTypes[channelType.value] ?? []
 })
 
+const isFreeText = computed(() => {
+  if (!channel.value || !notificationType.value) return false
+
+  return ['on_site_notices', 'global_notices'].includes(channelType.value)
+})
+
 const notificationType = ref(null)
 const title = ref('')
 const message = ref('')
@@ -56,27 +62,48 @@ onMounted(async () => {
   }
 })
 
-watch(notificationType, (type) => {
-  if (type) {
-    title.value = type.title
-    mode.value = type.isScheduled? 'scheduled': 'live'
-  }
+const autoTitle = computed(() => {
+  return notificationType.value?.title ?? ''
 })
+
+const autoMode = computed(() => {
+  return notificationType.value?.isScheduled ? 'scheduled' : 'live'
+})
+
+const autoMessage = computed(() => {
+  if (!notificationType.value || !channel.value) return ''
+
+  const vars = {
+    track: channel.value.track,
+    team1: channel.value.team_id_1,
+    team2: channel.value.team_id_2,
+    score1: score1.value,
+    score2: score2.value,
+    message: message.value // for free text
+  }
+
+  return applyTemplate(notificationType.value.template, vars)
+})
+
+function applyTemplate(template, vars) {
+  return template.replace(/{{(.*?)}}/g, (_, key) => {
+    const k = key.trim()
+    return vars[k] ?? ''
+  })
+}
 
 async function submit() {
   await $fetch('/api/notifications/create', {
     method: 'POST',
     body: {
       channel_slug: channel.value.slug,
-      title: title.value,
-      body: message.value,
+      title: autoTitle.value,
+      body: isFreeText.value ? message.value : autoMessage.value,
       scheduled_at: mode.value === 'scheduled' ? toUtc(scheduledAt.value) : null
     }
   })
 
-  title.value = ''
   message.value = ''
-  mode.value='live'
   scheduledAt.value = null
 }
 </script>
@@ -108,7 +135,7 @@ async function submit() {
       <div>
         <label class="block mb-2 text-gray-300">Title</label>
         <input
-          v-model="title"
+          :value="autoTitle"
           readonly
           class="w-full p-3 bg-gray-900 rounded border border-gray-700 opacity-70 cursor-not-allowed"
         />
@@ -145,7 +172,20 @@ async function submit() {
       <!-- Content -->
       <div>
         <label class="block mb-2 text-gray-300">Message</label>
-        <textarea v-model="message" rows="4" class="w-full p-3 bg-gray-900 rounded border border-gray-700" />
+        <!-- <textarea v-model="message" rows="4" class="w-full p-3 bg-gray-900 rounded border border-gray-700" /> -->
+        <textarea
+          v-if="isFreeText"
+          v-model="message"
+          rows="4"
+          class="w-full p-3 bg-gray-900 rounded border border-gray-700"
+        />
+        <textarea
+          v-else
+          :value="autoMessage"
+          readonly
+          rows="4"
+          class="w-full p-3 bg-gray-900 rounded border border-gray-700 opacity-70 cursor-not-allowed"
+        />
       </div>
       <!-- Mode Live / Scheduled -->
       <div v-if="channel && notificationType" class="mt-4">
@@ -153,12 +193,12 @@ async function submit() {
 
         <div class="flex items-center gap-4 text-gray-300 pointer-events-none">
           <label class="flex items-center gap-2">
-            <input  type="radio" value="live" v-model="mode" />
+            <input  type="radio" value="live" :checked="autoMode === 'live'" />
             Live
           </label>
 
           <label class="flex items-center gap-2 ">
-            <input type="radio" value="scheduled" v-model="mode" />
+            <input type="radio" value="scheduled" :checked="autoMode === 'scheduled'" />
             Scheduled
           </label>
         </div>
