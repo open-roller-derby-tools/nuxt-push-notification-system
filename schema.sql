@@ -51,6 +51,14 @@ CREATE TABLE users (
         error TEXT
     );
 
+    CREATE TABLE team_subscriptions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        team_id SMALLINT NOT NULL CHECK (team_id BETWEEN 1 AND 50),
+         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (user_id, team_id)
+    );
+
     -- USERS
     CREATE UNIQUE INDEX idx_users_device_id ON users(device_id);
 
@@ -70,6 +78,11 @@ CREATE TABLE users (
     CREATE INDEX idx_notifications_sent_at ON notifications(sent_at);
     CREATE INDEX idx_notifications_channel_id ON notifications(channel_id);
 
+    // TEAM SUBSCRIPTIONS
+    CREATE INDEX idx_team_subscriptions_user_id ON team_subscriptions(user_id);
+    CREATE INDEX idx_team_subscriptions_team_id ON team_subscriptions(team_id);
+
     -- NOTIFICATION LOGS (optionnel)
     CREATE INDEX idx_notification_logs_notification_id ON notification_logs(notification_id);
     CREATE INDEX idx_notification_logs_user_id ON notification_logs(user_id);
+
