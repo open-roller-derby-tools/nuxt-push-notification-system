@@ -17,7 +17,11 @@ export default defineNitroPlugin(() => {
     'scan',
     {},
     {
-      repeat: { every: 60_000 } // Every minute
+      repeat: { every: 60_000 }, // Every minute
+      // Without these, every finished scan stays in Redis (~1440 jobs/day)
+      // until maxmemory is hit and all queue writes fail with OOM
+      removeOnComplete: { count: 100 }, // Keep the last 100 succeeded scans
+      removeOnFail: { count: 500 } // Keep the last 500 failed scans for debug
     }
   )
 
